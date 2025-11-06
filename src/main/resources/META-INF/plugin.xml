@@ -1,15 +1,17 @@
-<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.krowikbobton.searchstringoccurrencesintellijplugin</id>
-    <name>search-string-occurrences-intellij-plugin</name>
+    <name>Search-String-Occurrences</name>
     <vendor>krowik-bobton</vendor>
-
+    <description><![CDATA[
+       This plugin allows user to quickly search for text occurrences in any given directory.
+    ]]></description>
     <depends>com.intellij.modules.platform</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
-
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.krowikbobton.searchstringoccurrencesintellijplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.krowikbobton.searchstringoccurrencesintellijplugin.startup.MyProjectActivity" />
+        <toolWindow
+                factoryClass="com.github.krowikbobton.searchstringoccurrencesintellijplugin.toolWindow.MyToolWindowFactory"
+                id="StringSearcher"
+                anchor="bottom"
+        />
     </extensions>
 </idea-plugin>
