@@ -1,7 +1,8 @@
 # search-string-occurrences-intellij-plugin Changelog
+## [Unreleased]
 
 ## [0.1.2] - 2025-11-06
-## Added
+### Added
 - Adds a feature to search hidden files 
 
 ## [0.1.1] - 2025-11-05
