@@ -37,7 +37,7 @@ dependencies {
     testImplementation(libs.opentest4j)
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0") // Kluczowe dla UI!
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {

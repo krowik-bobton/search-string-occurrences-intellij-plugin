@@ -6,7 +6,6 @@ import java.nio.file.Path
 import java.nio.file.Files
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -22,9 +21,9 @@ import kotlin.io.path.isHidden
 import kotlin.io.path.isReadable
 import java.io.FileNotFoundException
 import com.intellij.openapi.diagnostic.Logger
+import kotlinx.coroutines.flow.flowOn
 
-private val logger = Logger.getInstance("searchForTextOccurrencesPlugin")
-
+private val logger = Logger.getInstance(object{} :: class.java.enclosingClass)
 
 interface Occurrence {
     val file: Path
@@ -32,19 +31,27 @@ interface Occurrence {
     val offset: Int
 }
 
-class OccurrenceData(
+data class OccurrenceInfo(
     override val file: Path,
     override val line: Int,
     override val offset: Int
 
 ) : Occurrence
 
-
+/**
+ * Search for occurrences of `stringToSearch` inside files of `directory`
+ * @param stringToSearch non-empty pattern (can't contain newlines)
+ * @param directory starting directory
+ * @param searchHidden whether to search hidden files/directories
+ *
+ * @return Flow of occurrences (path, line, offset)
+ */
 fun searchForTextOccurrences(
     stringToSearch: String,
     directory: Path,
     searchHidden: Boolean = true
 ): Flow<Occurrence> {
+
     if (!directory.exists()) {
         throw NoSuchFileException("Directory $directory does not exist")
     }
@@ -56,9 +63,9 @@ fun searchForTextOccurrences(
     if (!directory.isDirectory()) {
         throw IllegalArgumentException("Provided path: $directory does not lead to a directory")
     }
-    // Given string cannot contain endlines
+
     if (stringToSearch.contains("\n")) {
-        throw IllegalArgumentException("A pattern string cannot contain endlines!")
+        throw IllegalArgumentException("A pattern string cannot contain newlines!")
     }
 
     if (stringToSearch.isEmpty()) {
@@ -68,15 +75,17 @@ fun searchForTextOccurrences(
     if (!searchHidden && directory.isHidden()) {
         throw IllegalArgumentException("The starting directory $directory is hidden, but 'Search hidden files' is disabled")
     }
-    return channelFlow {
 
-        val coreCount = Runtime.getRuntime().availableProcessors()
-        val optimalConcurrency = (coreCount / 2).coerceAtLeast(1)
-        //use half of available cores to avoid overwhelming the CPUs
-        val semaphore = Semaphore(optimalConcurrency)
+    return channelFlow {
+        // Limit number of files being read at the same time to half of
+        // the available cores to prevent overwhelming processing units
+        val coreCount =  Runtime.getRuntime().availableProcessors()
+        val filesAtOnce = (coreCount / 2).coerceAtLeast(1)
+        val semaphore = Semaphore(filesAtOnce)
+
         try {
             val visitor: SimpleFileVisitor<Path> = object : SimpleFileVisitor<Path>() {
-                // Before entering the directory contents (after entering the directory itself)
+                // Before visiting the directory contents (after reading current directory)
                 override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
                     ensureActive()
                     if (!searchHidden && dir.isHidden()) {
@@ -85,18 +94,23 @@ fun searchForTextOccurrences(
                     return FileVisitResult.CONTINUE
                 }
 
-
+                // After unsuccessful try of opening the directory / visiting the file or other reasons
                 override fun visitFileFailed(file: Path, exc: IOException): FileVisitResult {
                     ensureActive()
+                    // It's not a critical error if file couldn't be visited, continue searching
                     logger.warn("Could not visit $file", exc)
                     return FileVisitResult.CONTINUE
                 }
 
                 override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
                     ensureActive()
-                    if ((!searchHidden && file.isHidden()) || !file.isReadable() || !attrs.isRegularFile) {
+                    if ((!searchHidden && file.isHidden()) || !file.isReadable()
+                        || !attrs.isRegularFile
+                    ) {
                         return FileVisitResult.CONTINUE
                     }
+                    // Launching coroutine with Dispatchers.IO, because accessing and reading
+                    // files require many I/O operations.
                     launch(Dispatchers.IO) {
                         semaphore.withPermit {
                             var lineNumber = 1
@@ -104,13 +118,11 @@ fun searchForTextOccurrences(
                                 file.toFile().useLines { lines ->
                                     for (line in lines) {
                                         ensureActive()
-                                        // now line is a String representing one line of file
-                                        var lastIndex = 0
+                                        var lastIndex = 0   // index of last pattern occurrence in this line
                                         while (lastIndex != -1 && lastIndex < line.length) {
                                             lastIndex = line.indexOf(stringToSearch, lastIndex)
-                                            if (lastIndex != -1) { // if we found something
-
-                                                val occurrence = OccurrenceData(file, lineNumber, lastIndex)
+                                            if (lastIndex != -1) {
+                                                val occurrence = OccurrenceInfo(file, lineNumber, lastIndex)
                                                 send(occurrence)
                                                 lastIndex++
                                             }
@@ -118,8 +130,10 @@ fun searchForTextOccurrences(
                                         lineNumber++
                                     }
                                 }
-                            } catch (e: IOException) {
+                            } catch (e: IOException) { // exceptions other than I/O will be thrown further
                                 if (e is FileNotFoundException || e is NoSuchFileException) {
+                                    // Mostly when file was deleted/changed by other process after we
+                                    // started reading it. Such situations are not critical.
                                     logger.warn("Skipped missing file: $file")
                                 } else {
                                     logger.error("Problem reading the file: $file : $e")
@@ -131,8 +145,10 @@ fun searchForTextOccurrences(
                 }
             }
             Files.walkFileTree(directory, visitor)
-        } catch (e: Exception) {
-            close(e)
+        } catch(e : Exception) {
+            // if some unexpected exception occurred, throw it further
+            logger.error(e.message, e)
+            throw e
         }
     }.flowOn(Dispatchers.IO)
 }

@@ -9,9 +9,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow
-                factoryClass="com.github.krowikbobton.searchstringoccurrencesintellijplugin.toolWindow.MyToolWindowFactory"
+                factoryClass="com.github.krowikbobton.searchstringoccurrencesintellijplugin.toolWindow.SearchingToolWindow"
                 id="StringSearcher"
-                anchor="bottom"
         />
     </extensions>
 </idea-plugin>
