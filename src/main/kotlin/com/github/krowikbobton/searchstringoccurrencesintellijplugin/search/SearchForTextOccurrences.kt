@@ -64,6 +64,9 @@ fun searchForTextOccurrences(
     searchHidden: Boolean = true
 ): Flow<Occurrence> {
 
+    if (directory.toString() == ""){
+        throw IllegalArgumentException("Directory path must not be empty")
+    }
     if (!directory.exists()) {
         throw NoSuchFileException("Directory $directory does not exist")
     }
