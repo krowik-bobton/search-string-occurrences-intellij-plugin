@@ -1,5 +1,6 @@
 package com.github.krowikbobton.searchstringoccurrencesintellijplugin.search
 
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import java.nio.file.Path
@@ -24,7 +25,17 @@ import com.intellij.openapi.diagnostic.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flowOn
 
+
 private val logger = Logger.getInstance(object{} :: class.java.enclosingClass)
+
+// Entering virtual filesystems will most likely result in loop or exceeding memory limit
+private val VIRTUAL_FILESYSTEMS = setOf(
+    "/proc",
+    "/sys",
+    "/dev",
+    "/run"
+)
+
 
 interface Occurrence {
     val file: Path
@@ -77,6 +88,10 @@ fun searchForTextOccurrences(
         throw IllegalArgumentException("The starting directory $directory is hidden, but 'Search hidden files' is disabled")
     }
 
+    if(VIRTUAL_FILESYSTEMS.any {directory.toAbsolutePath().normalize().startsWith(it) }) {
+        throw IllegalArgumentException("The starting directory $directory is in a virtual folder")
+    }
+
     return channelFlow {
         // Limit number of files being read at the same time to half of
         // the available cores to prevent overwhelming processing units
@@ -89,6 +104,12 @@ fun searchForTextOccurrences(
                 // Before visiting the directory contents (after reading current directory)
                 override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
                     ensureActive()
+                    val absPath = dir.toAbsolutePath()
+                    // We are not entering the virtual directories
+                    if (VIRTUAL_FILESYSTEMS.any { absPath.startsWith(it) }) {
+                        logger.warn("Skipping known virtual filesystem: $dir")
+                        return FileVisitResult.SKIP_SUBTREE
+                    }
                     if (!searchHidden && dir.isHidden()) {
                         return FileVisitResult.SKIP_SUBTREE
                     }

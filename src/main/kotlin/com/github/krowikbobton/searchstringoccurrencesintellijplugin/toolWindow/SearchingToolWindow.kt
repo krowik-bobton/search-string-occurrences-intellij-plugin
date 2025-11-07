@@ -73,11 +73,7 @@ class SearchingToolWindow : ToolWindowFactory {
             searchJob = mainScope.launch {
                 try {
                     val directory = Paths.get(firstDirectory)
-                    // Inside the function provided path and pattern String will be checked.
-                    // If something is wrong, exception will be thrown.
                     val occurrenceFlow = searchForTextOccurrences(pattern, directory, searchHiddenFiles)
-                    // no exception, start searching
-                    resultsArea.text = "--- Searching started ---\n\n"
                     var foundAtLeastOneOccurrence = false
                     occurrenceFlow.collect { occurrence ->
                         val line =  "${occurrence.file}: ${occurrence.line}:${occurrence.offset}\n"
@@ -103,6 +99,9 @@ class SearchingToolWindow : ToolWindowFactory {
                     resultsArea.append("\n--- Searching cancelled by User ---\n")
                     throw e
                 } catch(e : IllegalArgumentException){
+                    resultsArea.append("--- ERROR --- \n${e.message}\n")
+                }
+                catch(e : AccessDeniedException){
                     resultsArea.append("--- ERROR --- \n${e.message}\n")
                 }
                 catch (e: Exception) {
