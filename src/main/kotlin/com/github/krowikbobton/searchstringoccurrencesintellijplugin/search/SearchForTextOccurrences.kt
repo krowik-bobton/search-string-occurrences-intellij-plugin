@@ -21,6 +21,7 @@ import kotlin.io.path.isHidden
 import kotlin.io.path.isReadable
 import java.io.FileNotFoundException
 import com.intellij.openapi.diagnostic.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flowOn
 
 private val logger = Logger.getInstance(object{} :: class.java.enclosingClass)
@@ -145,9 +146,10 @@ fun searchForTextOccurrences(
                 }
             }
             Files.walkFileTree(directory, visitor)
-        } catch(e : Exception) {
-            // if some unexpected exception occurred, throw it further
-            logger.error(e.message, e)
+        } catch(e : CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.error("Critical error during file walk: ${e.message}", e)
             throw e
         }
     }.flowOn(Dispatchers.IO)

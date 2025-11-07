@@ -73,8 +73,8 @@ class SearchingToolWindow : ToolWindowFactory {
             searchJob = mainScope.launch {
                 try {
                     val directory = Paths.get(firstDirectory)
-                    // Inside the function, conditions before channelFlow will check if provided path and string
-                    // are suitable. If not, exception will be thrown.
+                    // Inside the function provided path and pattern String will be checked.
+                    // If something is wrong, exception will be thrown.
                     val occurrenceFlow = searchForTextOccurrences(pattern, directory, searchHiddenFiles)
                     // no exception, start searching
                     resultsArea.text = "--- Searching started ---\n\n"
