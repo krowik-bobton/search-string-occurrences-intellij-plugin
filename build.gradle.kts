@@ -36,8 +36,8 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
     testImplementation("org.junit.platform:junit-platform-launcher:1.9.3")
