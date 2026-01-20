@@ -102,7 +102,7 @@ fun searchForTextOccurrences(
             launch(Dispatchers.IO){
                 for(file in filesChannel){
                     val isBinary = isFileBinary(file)
-                    if(isBinary) continue;
+                    if(isBinary) continue
                     var lineNumber = 1
                     try {
                         file.toFile().useLines { lines ->
