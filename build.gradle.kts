@@ -39,6 +39,13 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
 
+    testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
+    testImplementation("org.junit.platform:junit-platform-launcher:1.9.3")
+    testImplementation("org.junit.platform:junit-platform-commons:1.9.3")
+    testImplementation("org.junit.platform:junit-platform-engine:1.9.3")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
         create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
@@ -54,6 +61,7 @@ dependencies {
 
         testFramework(TestFrameworkType.Platform)
     }
+    implementation(kotlin("test"))
 }
 
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
@@ -115,6 +123,12 @@ tasks {
     publishPlugin {
         dependsOn(patchChangelog)
     }
+
+    test{
+        useJUnitPlatform()
+    }
+
+
 }
 
 intellijPlatformTesting {
